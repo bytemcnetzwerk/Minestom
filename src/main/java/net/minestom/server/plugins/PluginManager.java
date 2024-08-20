@@ -37,6 +37,13 @@ public final class PluginManager {
         }
     }
 
+    public void disablePlugins() {
+        plugins.forEach(pluginInfo -> {
+            assert pluginInfo.getPlugin() != null;
+            pluginInfo.getPlugin().onDisable();
+        });
+    }
+
     public void loadPlugins() {
         Check.stateCondition(loaded, "Plugins have already been loaded!");
 

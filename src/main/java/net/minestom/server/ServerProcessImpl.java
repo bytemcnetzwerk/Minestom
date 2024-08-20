@@ -351,6 +351,7 @@ final class ServerProcessImpl implements ServerProcess {
         LOGGER.info("Stopping " + MinecraftServer.getBrandName() + " server.");
         scheduler.shutdown();
         connection.shutdown();
+        pluginManager.disablePlugins();
         server.stop();
         LOGGER.info("Shutting down all thread pools.");
         benchmark.disable();
