@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public final class PluginManager {
 
@@ -38,10 +39,13 @@ public final class PluginManager {
     }
 
     public void disablePlugins() {
-        plugins.forEach(pluginInfo -> {
-            assert pluginInfo.getPlugin() != null;
-            pluginInfo.getPlugin().onDisable();
-        });
+        MinecraftServer.LOGGER.info("Disabling plugins... (" +
+                String.join(", ", plugins.stream().map(pluginInfo -> pluginInfo.getDescription().getName()).toList()) +
+                ")");
+
+        for (PluginInfo plugin : plugins) {
+            Objects.requireNonNull(plugin.getPlugin()).onDisable();
+        }
     }
 
     public void loadPlugins() {
