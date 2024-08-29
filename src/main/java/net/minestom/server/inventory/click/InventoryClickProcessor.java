@@ -115,10 +115,10 @@ public final class InventoryClickProcessor {
     }
 
     public @NotNull InventoryClickResult shiftClick(@NotNull AbstractInventory inventory, @NotNull AbstractInventory targetInventory,
-                                                    int start, int end, int step,
+                                                    int start, int end, int step, int button,
                                                     @NotNull Player player, int slot,
                                                     @NotNull ItemStack clicked, @NotNull ItemStack cursor) {
-        InventoryClickResult clickResult = startCondition(player, inventory, slot, ClickType.START_SHIFT_CLICK, clicked, cursor);
+        InventoryClickResult clickResult = startCondition(player, inventory, slot, (button == 0 ? ClickType.START_SHIFT_LEFT_CLICK : ClickType.START_SHIFT_RIGHT_CLICK), clicked, cursor);
         if (clickResult.isCancel()) return clickResult;
         if (clicked.isAir()) return clickResult.cancelled();
 
