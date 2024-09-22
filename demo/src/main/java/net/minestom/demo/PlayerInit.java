@@ -40,6 +40,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.BlockPredicates;
 import net.minestom.server.item.component.EnchantmentList;
+import net.minestom.server.item.component.LodestoneTracker;
 import net.minestom.server.item.component.PotionContents;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.monitoring.BenchmarkManager;
@@ -62,9 +63,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class PlayerInit {
 
-    private static final Inventory inventory;
+    private final Inventory inventory;
 
-    private static final EventNode<Event> DEMO_NODE = EventNode.all("demo")
+    private final EventNode<Event> DEMO_NODE = EventNode.all("demo")
             .addListener(EntityAttackEvent.class, event -> {
                 final Entity source = event.getEntity();
                 final Entity entity = event.getTarget();
@@ -156,6 +157,10 @@ public class PlayerInit {
                         .build();
                 player.getInventory().addItemStack(bundle);
 
+                player.getInventory().addItemStack(ItemStack.builder(Material.COMPASS)
+                        .set(ItemComponent.LODESTONE_TRACKER, new LodestoneTracker(player.getInstance().getDimensionName(), new Vec(10, 10, 10), true))
+                        .build());
+
                 player.getInventory().addItemStack(ItemStack.builder(Material.STONE_SWORD)
                         .set(ItemComponent.ENCHANTMENTS, new EnchantmentList(Map.of(
                                 Enchantment.SHARPNESS, 10
@@ -222,7 +227,7 @@ public class PlayerInit {
                 event.getInstance().setBlock(event.getBlockPosition(), block);
             });
 
-    static {
+    {
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
 
         InstanceContainer instanceContainer = instanceManager.createInstanceContainer();
@@ -257,9 +262,9 @@ public class PlayerInit {
         inventory.setItemStack(3, ItemStack.of(Material.DIAMOND, 34));
     }
 
-    private static final AtomicReference<TickMonitor> LAST_TICK = new AtomicReference<>();
+    private final AtomicReference<TickMonitor> LAST_TICK = new AtomicReference<>();
 
-    public static void init() {
+    public void init() {
         var eventHandler = MinecraftServer.getGlobalEventHandler();
         eventHandler.addChild(DEMO_NODE);
 

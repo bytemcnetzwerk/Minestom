@@ -65,7 +65,7 @@ public class BlockPlacementListener {
         if (!playerBlockInteractEvent.isCancelled()) {
             final var handler = interactedBlock.handler();
             if (handler != null) {
-                blockUse |= !handler.onInteract(new BlockHandler.Interaction(interactedBlock, instance, blockPosition, cursorPosition, player, hand));
+                blockUse |= !handler.onInteract(new BlockHandler.Interaction(interactedBlock, instance, blockFace, blockPosition, cursorPosition, player, hand));
             }
         }
         if (blockUse) {
@@ -161,7 +161,7 @@ public class BlockPlacementListener {
         }
 
         // BlockPlaceEvent check
-        PlayerBlockPlaceEvent playerBlockPlaceEvent = new PlayerBlockPlaceEvent(player, placedBlock, blockFace, new BlockVec(placementPosition), packet.hand());
+        PlayerBlockPlaceEvent playerBlockPlaceEvent = new PlayerBlockPlaceEvent(player, placedBlock, blockFace, new BlockVec(placementPosition), cursorPosition, packet.hand());
         playerBlockPlaceEvent.consumeBlock(player.getGameMode() != GameMode.CREATIVE);
         EventDispatcher.call(playerBlockPlaceEvent);
         if (playerBlockPlaceEvent.isCancelled()) {

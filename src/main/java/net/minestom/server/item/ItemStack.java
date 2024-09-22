@@ -287,7 +287,10 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
         }
     }
 
-    sealed interface Builder extends TagWritable permits ItemStackImpl.Builder {
+    sealed interface Builder permits ItemStackImpl.Builder {
+
+        @Contract(value = "_ -> this")
+        @NotNull Builder material(@NotNull Material material);
 
         @Contract(value = "_ -> this")
         @NotNull
@@ -353,9 +356,10 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
         Builder hideExtraTooltip();
 
         @Contract(value = "_, _ -> this")
-        default <T> @NotNull Builder set(@NotNull Tag<T> tag, @Nullable T value) {
-            setTag(tag, value);
-            return this;
+        <T> @NotNull Builder set(@NotNull Tag<T> tag, @Nullable T value);
+
+        default <T> void setTag(@NotNull Tag<T> tag, @Nullable T value) {
+            set(tag, value);
         }
 
         @Contract(value = "-> new", pure = true)

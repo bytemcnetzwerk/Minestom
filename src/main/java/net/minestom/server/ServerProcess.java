@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.SocketAddress;
 
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface ServerProcess extends Registries, Snapshotable {
     /**

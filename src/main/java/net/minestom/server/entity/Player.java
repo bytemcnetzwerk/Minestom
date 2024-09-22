@@ -48,6 +48,7 @@ import net.minestom.server.event.player.*;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.EntityTracker;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.SharedInstance;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.PlayerInventory;
@@ -86,20 +87,17 @@ import net.minestom.server.thread.Acquirable;
 import net.minestom.server.timer.Scheduler;
 import net.minestom.server.utils.MathUtils;
 import net.minestom.server.utils.PacketUtils;
-import net.minestom.server.utils.PropertyUtils;
 import net.minestom.server.utils.async.AsyncUtils;
 import net.minestom.server.utils.chunk.ChunkUpdateLimitChecker;
 import net.minestom.server.utils.chunk.ChunkUtils;
 import net.minestom.server.utils.function.IntegerBiConsumer;
 import net.minestom.server.utils.identity.NamedAndIdentified;
-import net.minestom.server.utils.instance.InstanceUtils;
 import net.minestom.server.utils.inventory.PlayerInventoryUtils;
 import net.minestom.server.utils.time.Cooldown;
 import net.minestom.server.utils.time.TimeUnit;
 import net.minestom.server.utils.validate.Check;
 import net.minestom.server.world.DimensionType;
-import org.jctools.queues.MessagePassingQueue;
-import org.jctools.queues.MpscUnboundedXaddArrayQueue;
+import org.jctools.queues.MpscArrayQueue;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -128,10 +126,6 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
 
     private static final Component REMOVE_MESSAGE = Component.text("You have been removed from the server without reason.", NamedTextColor.RED);
     private static final Component MISSING_REQUIRED_RESOURCE_PACK = Component.text("Required resource pack was not loaded.", NamedTextColor.RED);
-
-    private static final float MIN_CHUNKS_PER_TICK = PropertyUtils.getFloat("minestom.chunk-queue.min-per-tick", 0.01f);
-    private static final float MAX_CHUNKS_PER_TICK = PropertyUtils.getFloat("minestom.chunk-queue.max-per-tick", 64.0f);
-    private static final float CHUNKS_PER_TICK_MULTIPLIER = PropertyUtils.getFloat("minestom.chunk-queue.multiplier", 1f);
 
     // Magic values: https://wiki.vg/Entity_statuses#Player
     private static final int STATUS_ENABLE_REDUCED_DEBUG_INFO = 22;
@@ -180,7 +174,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     private final AtomicInteger teleportId = new AtomicInteger();
     private int receivedTeleportId;
 
-    private final MessagePassingQueue<ClientPacket> packets = new MpscUnboundedXaddArrayQueue<>(32);
+    private final MpscArrayQueue<ClientPacket> packets = new MpscArrayQueue<>(ServerFlag.PLAYER_PACKET_QUEUE_SIZE);
     private final boolean levelFlat;
     private final PlayerSettings settings;
     private float exp;
@@ -619,15 +613,6 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     }
 
     @Override
-    public void updateOldViewer(@NotNull Player player) {
-        super.updateOldViewer(player);
-        // Team
-        if (this.getTeam() != null && this.getTeam().getMembers().size() == 1) {// If team only contains "this" player
-            player.sendPacket(this.getTeam().createTeamDestructionPacket());
-        }
-    }
-
-    @Override
     public void sendPacketToViewersAndSelf(@NotNull SendablePacket packet) {
         sendPacket(packet);
         super.sendPacketToViewersAndSelf(packet);
@@ -647,7 +632,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     public CompletableFuture<Void> setInstance(@NotNull Instance instance, @NotNull Pos spawnPosition) {
         final Instance currentInstance = this.instance;
         Check.argCondition(currentInstance == instance, "Instance should be different than the current one");
-        if (InstanceUtils.areLinked(currentInstance, instance) && spawnPosition.sameChunk(this.position)) {
+        if (SharedInstance.areLinked(currentInstance, instance) && spawnPosition.sameChunk(this.position)) {
             // The player already has the good version of all the chunks.
             // We just need to refresh his entity viewing list and add him to the instance
             spawnPlayer(instance, spawnPosition, false, false, false);
@@ -781,8 +766,8 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     public void onChunkBatchReceived(float newTargetChunksPerTick) {
 //        logger.debug("chunk batch received player={} chunks/tick={} lead={}", username, newTargetChunksPerTick, chunkBatchLead);
         chunkBatchLead -= 1;
-        targetChunksPerTick = Float.isNaN(newTargetChunksPerTick) ? MIN_CHUNKS_PER_TICK : MathUtils.clamp(
-                newTargetChunksPerTick * CHUNKS_PER_TICK_MULTIPLIER, MIN_CHUNKS_PER_TICK, MAX_CHUNKS_PER_TICK);
+        targetChunksPerTick = Float.isNaN(newTargetChunksPerTick) ? ServerFlag.MIN_CHUNKS_PER_TICK : MathUtils.clamp(
+                newTargetChunksPerTick * ServerFlag.CHUNKS_PER_TICK_MULTIPLIER, ServerFlag.MIN_CHUNKS_PER_TICK, ServerFlag.MAX_CHUNKS_PER_TICK);
 
         // Beyond the first batch we can preemptively send up to 10 (matching mojang server)
         if (maxChunkBatchLead == 1) maxChunkBatchLead = 10;
@@ -808,7 +793,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         if (chunkQueue.isEmpty() || chunkBatchLead >= maxChunkBatchLead) return;
 
         // Increment the pending chunk count by the target chunks per tick
-        pendingChunkCount = Math.min(pendingChunkCount + targetChunksPerTick, MAX_CHUNKS_PER_TICK);
+        pendingChunkCount = Math.min(pendingChunkCount + targetChunksPerTick, ServerFlag.MAX_CHUNKS_PER_TICK);
         if (pendingChunkCount < 1) return; // Cant send anything
 
         chunkQueueLock.lock();
@@ -1656,6 +1641,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         // Make sure that the player is in the PLAY state and synchronize their flight speed.
         if (isActive()) {
             refreshAbilities();
+            updateCollisions();
         }
 
         return true;
@@ -1790,14 +1776,9 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         Inventory openInventory = getOpenInventory();
 
         // Drop cursor item when closing inventory
-        ItemStack cursorItem;
-        if (openInventory == null) {
-            cursorItem = getInventory().getCursorItem();
-            getInventory().setCursorItem(ItemStack.AIR);
-        } else {
-            cursorItem = openInventory.getCursorItem(this);
-            openInventory.setCursorItem(this, ItemStack.AIR);
-        }
+        ItemStack cursorItem = getInventory().getCursorItem();
+        getInventory().setCursorItem(ItemStack.AIR);
+
         if (!cursorItem.isAir()) {
             // Add item to inventory if he hasn't been able to drop it
             if (!dropItem(cursorItem)) {
@@ -1861,8 +1842,8 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * Used to synchronize player position with viewers on spawn or after {@link Entity#teleport(Pos, long[], int)}
      * in properties where a {@link PlayerPositionAndLookPacket} is required
      *
-     * @param position the position used by {@link PlayerPositionAndLookPacket}
-     *                 this may not be the same as the {@link Entity#position}
+     * @param position      the position used by {@link PlayerPositionAndLookPacket}
+     *                      this may not be the same as the {@link Entity#position}
      * @param relativeFlags byte flags used by {@link PlayerPositionAndLookPacket}
      * @param shouldConfirm if false, the teleportation will be done without confirmation
      */
@@ -2137,16 +2118,14 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * @param packet the packet to add in the queue
      */
     public void addPacketToQueue(@NotNull ClientPacket packet) {
-        this.packets.offer(packet);
+        final boolean success = packets.offer(packet);
+        if (!success) {
+            kick(Component.text("Too Many Packets", NamedTextColor.RED));
+        }
     }
 
     @ApiStatus.Internal
-    @ApiStatus.Experimental
     public void interpretPacketQueue() {
-        if (this.packets.size() >= ServerFlag.PLAYER_PACKET_QUEUE_SIZE) {
-            kick(Component.text("Too Many Packets", NamedTextColor.RED));
-            return;
-        }
         final PacketListenerManager manager = MinecraftServer.getPacketListenerManager();
         // This method is NOT thread-safe
         this.packets.drain(packet -> manager.processClientPacket(packet, playerConnection), ServerFlag.PLAYER_PACKET_PER_TICK);
@@ -2202,8 +2181,10 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * @param slot the new held slot
      */
     public void refreshHeldSlot(byte slot) {
+        byte oldHeldSlot = this.heldSlot;
         this.heldSlot = slot;
         syncEquipment(EquipmentSlot.MAIN_HAND);
+        updateEquipmentAttributes(inventory.getItemStack(oldHeldSlot), inventory.getItemStack(this.heldSlot), EquipmentSlot.MAIN_HAND);
         clearItemUse();
     }
 
@@ -2300,63 +2281,13 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     }
 
     @Override
-    public @NotNull ItemStack getItemInMainHand() {
-        return inventory.getItemInMainHand();
+    public @NotNull ItemStack getEquipment(@NotNull EquipmentSlot slot) {
+        return inventory.getEquipment(slot);
     }
 
     @Override
-    public void setItemInMainHand(@NotNull ItemStack itemStack) {
-        inventory.setItemInMainHand(itemStack);
-    }
-
-    @Override
-    public @NotNull ItemStack getItemInOffHand() {
-        return inventory.getItemInOffHand();
-    }
-
-    @Override
-    public void setItemInOffHand(@NotNull ItemStack itemStack) {
-        inventory.setItemInOffHand(itemStack);
-    }
-
-    @Override
-    public @NotNull ItemStack getHelmet() {
-        return inventory.getHelmet();
-    }
-
-    @Override
-    public void setHelmet(@NotNull ItemStack itemStack) {
-        inventory.setHelmet(itemStack);
-    }
-
-    @Override
-    public @NotNull ItemStack getChestplate() {
-        return inventory.getChestplate();
-    }
-
-    @Override
-    public void setChestplate(@NotNull ItemStack itemStack) {
-        inventory.setChestplate(itemStack);
-    }
-
-    @Override
-    public @NotNull ItemStack getLeggings() {
-        return inventory.getLeggings();
-    }
-
-    @Override
-    public void setLeggings(@NotNull ItemStack itemStack) {
-        inventory.setLeggings(itemStack);
-    }
-
-    @Override
-    public @NotNull ItemStack getBoots() {
-        return inventory.getBoots();
-    }
-
-    @Override
-    public void setBoots(@NotNull ItemStack itemStack) {
-        inventory.setBoots(itemStack);
+    public void setEquipment(@NotNull EquipmentSlot slot, @NotNull ItemStack itemStack) {
+        inventory.setEquipment(slot, itemStack);
     }
 
     @Override
@@ -2401,6 +2332,12 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     @Override
     public Player asPlayer() {
         return this;
+    }
+
+    @Override
+    protected void updateCollisions() {
+        preventBlockPlacement = gameMode != GameMode.SPECTATOR;
+        collidesWithEntities = gameMode != GameMode.SPECTATOR;
     }
 
     protected void sendChunkUpdates(Chunk newChunk) {
@@ -2539,6 +2476,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                             byte displayedSkinParts, MainHand mainHand, boolean enableTextFiltering, boolean allowServerListings) {
             this.locale = locale;
             // Clamp viewDistance to valid bounds
+            byte previousViewDistance = this.viewDistance;
             this.viewDistance = (byte) MathUtils.clamp(viewDistance, 2, 32);
             this.chatMessageType = chatMessageType;
             this.chatColors = chatColors;
@@ -2546,6 +2484,27 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
             this.mainHand = mainHand;
             this.enableTextFiltering = enableTextFiltering;
             this.allowServerListings = allowServerListings;
+
+            // Check to see if we're in an instance first, as this method is called when first logging in since the client sends the Settings packet during configuration
+            if (instance != null) {
+                // Load/unload chunks if necessary due to view distance changes
+                if (previousViewDistance < this.viewDistance) {
+                    // View distance expanded, send chunks
+                    ChunkUtils.forChunksInRange(position.chunkX(), position.chunkZ(), this.viewDistance, (chunkX, chunkZ) -> {
+                        if (Math.abs(chunkX - position.chunkX()) > previousViewDistance || Math.abs(chunkZ - position.chunkZ()) > previousViewDistance) {
+                            chunkAdder.accept(chunkX, chunkZ);
+                        }
+                    });
+                } else if (previousViewDistance > this.viewDistance) {
+                    // View distance shrunk, unload chunks
+                    ChunkUtils.forChunksInRange(position.chunkX(), position.chunkZ(), previousViewDistance, (chunkX, chunkZ) -> {
+                        if (Math.abs(chunkX - position.chunkX()) > this.viewDistance || Math.abs(chunkZ - position.chunkZ()) > this.viewDistance) {
+                            chunkRemover.accept(chunkX, chunkZ);
+                        }
+                    });
+                }
+                // Else previous and current are equal, do nothing
+            }
 
             boolean isInPlayState = getPlayerConnection().getConnectionState() == ConnectionState.PLAY;
             PlayerMeta playerMeta = getPlayerMeta();
