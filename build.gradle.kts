@@ -1,5 +1,3 @@
-import java.time.Duration
-
 plugins {
     `java-library`
     `maven-publish`
@@ -59,23 +57,25 @@ allprojects {
     publishing {
         publications {
             create<MavenPublication>("mavenJava") {
-                from(components["java"])
+                this.groupId = group.toString()
+                this.artifactId = artifactId
+                this.version = version.toString()
 
-                this.groupId = project.group.toString()
-                this.artifactId = project.name
-                this.version = project.version.toString()
+                from(components["java"])
             }
         }
-
         repositories {
             maven {
-                name = "bytemc"
-                url = uri("http://192.168.200.1:12192/repository/maven-snapshots/")
-                isAllowInsecureProtocol = true
-
+                name = "polocloud"
+                url = if (version.toString().endsWith("SNAPSHOT")) {
+                    uri(property("PUBLISH_URL_SNAPSHOTS").toString())
+                } else {
+                    uri(property("PUBLISH_URL_RELEASES").toString())
+                }
+                isAllowInsecureProtocol=true
                 credentials {
-                    username = System.getenv("BYTEMC_REPO_USER")
-                    password = System.getenv("BYTEMC_REPO_PASSWORD")
+                    username = property("PUBLISH_USERNAME").toString()
+                    password = property("PUBLISH_PASSWORD").toString()
                 }
             }
         }
