@@ -13,13 +13,23 @@ public class MinestomBootstrap {
         MinecraftServer server = MinecraftServer.init();
         var args = List.of(arguments);
 
-        if (args.contains("--velocity")) {
-            for (int i = 0; i < args.size(); i++) {
-                if (args.get(i).equals("--velocity")) {
-                    VelocityProxy.enable(args.get(i + 1));
-                    MinecraftServer.LOGGER.info("Velocity will be enabled...");
+        if (args.contains("--velocity") || System.getenv("forwarding_secret") != null) {
+            String forwardingSecret;
+
+            if (args.contains("--velocity")) {
+                forwardingSecret = "";
+
+                for (int i = 0; i < args.size(); i++) {
+                    if (args.get(i).equals("--velocity")) {
+                        forwardingSecret = args.get(i + 1);
+                    }
                 }
+            } else {
+                forwardingSecret = System.getenv("forwarding_secret");
             }
+
+            VelocityProxy.enable(forwardingSecret);
+            MinecraftServer.LOGGER.info("Velocity will be enabled...");
         } else {
             if (args.contains("--disableMojangAuth")) {
                 MinecraftServer.LOGGER.info("Disable MojangAuth...");
