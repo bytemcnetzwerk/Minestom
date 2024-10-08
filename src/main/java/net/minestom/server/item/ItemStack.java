@@ -275,14 +275,13 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
         }
     }
 
-    sealed interface Builder extends TagWritable permits ItemStackImpl.Builder {
+    sealed interface Builder permits ItemStackImpl.Builder {
 
         @Contract(value = "_ -> this")
         @NotNull Builder material(@NotNull Material material);
 
         @Contract(value = "_ -> this")
-        @NotNull
-        Builder amount(int amount);
+        @NotNull Builder amount(int amount);
 
         @Contract(value = "_, _ -> this")
         <T> @NotNull Builder set(@NotNull DataComponent<T> component, T value);
@@ -340,8 +339,7 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
          * present. This is because armor flags in tooltips use attribute modifiers show flag to display or not, but
          * are not actually based on the attribute modifiers component.</p>
          */
-        @NotNull
-        Builder hideExtraTooltip();
+        @NotNull Builder hideExtraTooltip();
 
         @Contract(value = "_, _ -> this")
         <T> @NotNull Builder set(@NotNull Tag<T> tag, @Nullable T value);
@@ -351,8 +349,6 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
         }
 
         @Contract(value = "-> new", pure = true)
-        @NotNull
-        ItemStack build();
-
+        @NotNull ItemStack build();
     }
 }
