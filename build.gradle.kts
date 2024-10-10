@@ -66,7 +66,7 @@ allprojects {
         }
         repositories {
             maven {
-                name = "polocloud"
+                name = "minestom"
                 url = if (version.toString().endsWith("SNAPSHOT")) {
                     uri(property("PUBLISH_URL_SNAPSHOTS").toString())
                 } else {
