@@ -38,21 +38,31 @@ public class MinestomBootstrap {
             }
         }
 
-        var port = 25565;
         var host = "0.0.0.0";
-        if (args.contains("--port")) {
+        var port = 25565;
+
+        if (System.getenv("hostname") != null) {
+            host = System.getenv("hostname");
+        } else if (args.contains("--host")) {
             for (int i = 0; i < args.size(); i++) {
-                if (Objects.equals(args.get(i), "--port")) {
-                    port = Integer.parseInt(args.get(i + 1));
-                }
                 if (Objects.equals(args.get(i), "--host")) {
                     host = args.get(i + 1);
                 }
             }
-            MinecraftServer.LOGGER.info("Runtime port is {}", port);
         }
+
+        if (System.getenv("port") != null) {
+            port = Integer.parseInt(System.getenv("port"));
+        } else if (args.contains("--port")) {
+            for (int i = 0; i < args.size(); i++) {
+                if (Objects.equals(args.get(i), "--port")) {
+                    port = Integer.parseInt(args.get(i + 1));
+                }
+            }
+        }
+
         server.start(host, port);
-        MinecraftServer.LOGGER.info("Minestom server was started!");
+        MinecraftServer.LOGGER.info("Minestom server was started on {}:{}", host, port);
     }
 
 }
