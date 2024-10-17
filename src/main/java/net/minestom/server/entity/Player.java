@@ -1769,11 +1769,16 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * It closes the player inventory (when opened) if {@link #getOpenInventory()} returns null.
      */
     public void closeInventory() {
-        closeInventory(false);
+        closeInventory(false, true);
     }
 
     @ApiStatus.Internal
     public void closeInventory(boolean fromClient) {
+        this.closeInventory(fromClient, false);
+    }
+
+    @ApiStatus.Internal
+    public void closeInventory(boolean fromClient, boolean callEvent) {
         Inventory openInventory = getOpenInventory();
 
         // Drop cursor item when closing inventory
@@ -1798,6 +1803,8 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
             }
             if (!fromClient) {
                 sendPacket(closeWindowPacket);
+            }
+            if (callEvent) {
                 InventoryCloseEvent inventoryCloseEvent = new InventoryCloseEvent(openInventory, this);
                 EventDispatcher.call(inventoryCloseEvent);
             }
