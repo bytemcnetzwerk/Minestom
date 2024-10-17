@@ -39,6 +39,7 @@ import net.minestom.server.entity.metadata.LivingEntityMeta;
 import net.minestom.server.entity.metadata.PlayerMeta;
 import net.minestom.server.entity.vehicle.PlayerVehicleInformation;
 import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.inventory.InventoryCloseEvent;
 import net.minestom.server.event.inventory.InventoryOpenEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.ItemUpdateStateEvent;
@@ -1795,7 +1796,11 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                 openInventory.removeViewer(this); // Clear cache
                 this.openInventory = null;
             }
-            if (!fromClient) sendPacket(closeWindowPacket);
+            if (!fromClient) {
+                sendPacket(closeWindowPacket);
+                InventoryCloseEvent inventoryCloseEvent = new InventoryCloseEvent(openInventory, this);
+                EventDispatcher.call(inventoryCloseEvent);
+            }
             inventory.update();
             this.didCloseInventory = true;
         }
