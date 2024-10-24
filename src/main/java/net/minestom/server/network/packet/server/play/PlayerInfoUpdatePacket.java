@@ -10,10 +10,7 @@ import net.minestom.server.network.player.GameProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static net.minestom.server.network.NetworkBuffer.*;
 
@@ -25,12 +22,13 @@ public final class PlayerInfoUpdatePacket implements ServerPacket.Play {
 
     public PlayerInfoUpdatePacket(@NotNull EnumSet<@NotNull Action> actions, @NotNull List<@NotNull Entry> entries) {
         this.actions = EnumSet.copyOf(actions);
-        this.entries = List.copyOf(entries);
+        this.entries = new ArrayList<>(entries);
     }
 
     public PlayerInfoUpdatePacket(@NotNull Action action, @NotNull Entry entry) {
         this.actions = EnumSet.of(action);
-        this.entries = List.of(entry);
+        this.entries = new ArrayList<>();
+        this.entries.add(entry);
     }
 
     public PlayerInfoUpdatePacket(@NotNull NetworkBuffer reader) {
