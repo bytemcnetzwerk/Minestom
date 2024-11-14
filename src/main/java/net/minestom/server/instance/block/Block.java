@@ -240,11 +240,11 @@ public sealed interface Block extends StaticProtocolObject, TagReadable, Blocks 
         }
 
         default @NotNull Block getBlock(int x, int y, int z) {
-            return Objects.requireNonNull(getBlock(x, y, z, Condition.NONE));
+            return Objects.requireNonNullElse(getBlock(x, y, z, Condition.NONE), Block.AIR);
         }
 
         default @NotNull Block getBlock(@NotNull Point point) {
-            return Objects.requireNonNull(getBlock(point, Condition.NONE));
+            return Objects.requireNonNullElse(getBlock(point, Condition.NONE), Block.AIR);
         }
 
         /**
