@@ -11,6 +11,7 @@ import net.minestom.server.utils.validate.Check;
 import net.minestom.server.world.biome.Biome;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -247,6 +248,15 @@ public final class GeneratorImpl {
         }
 
         @Override
+        public Block getBlock(int x, int y, int z, @NotNull Condition condition) {
+            final int localX = toSectionRelativeCoordinate(x);
+            final int localY = toSectionRelativeCoordinate(y);
+            final int localZ = toSectionRelativeCoordinate(z);
+
+            return Block.fromBlockId(this.genSection.blocks.get(localX, localY, localZ));
+        }
+
+        @Override
         public void setBlock(int x, int y, int z, @NotNull Block block) {
             final int localX = toSectionRelativeCoordinate(x);
             final int localY = toSectionRelativeCoordinate(y);
@@ -315,15 +325,29 @@ public final class GeneratorImpl {
                                    List<GenerationUnit> sections) implements GenericModifier {
         @Override
         public void setBlock(int x, int y, int z, @NotNull Block block) {
-            checkBorder(x, y, z);
+            if (!checkBorder(x, y, z)) {
+                return;
+            }
             final GenerationUnit section = findAbsoluteSection(x, y, z);
             y -= start.y();
             section.modifier().setBlock(x, y, z, block);
         }
 
         @Override
+        public @UnknownNullability Block getBlock(int x, int y, int z, @NotNull Condition condition) {
+            if (!checkBorder(x, y, z)) {
+                return Block.AIR;
+            }
+            final GenerationUnit section = findAbsoluteSection(x, y, z);
+            y -= start.y();
+            return section.modifier().getBlock(x, y, z);
+        }
+
+        @Override
         public void setBiome(int x, int y, int z, @NotNull DynamicRegistry.Key<Biome> biome) {
-            checkBorder(x, y, z);
+            if (!checkBorder(x, y, z)) {
+                return;
+            }
             final GenerationUnit section = findAbsoluteSection(x, y, z);
             y -= start.y();
             section.modifier().setBiome(x, y, z, biome);
@@ -432,13 +456,10 @@ public final class GeneratorImpl {
             return findAbsolute(sections, Vec.ZERO, width, height, depth, x, y, z);
         }
 
-        private void checkBorder(int x, int y, int z) {
-            if (x < start.x() || x >= end.x() ||
-                    y < start.y() || y >= end.y() ||
-                    z < start.z() || z >= end.z()) {
-                final String format = String.format("Invalid coordinates: %d, %d, %d for area %s %s", x, y, z, start, end);
-                throw new IllegalArgumentException(format);
-            }
+        private boolean checkBorder(int x, int y, int z) {
+            return !(x < start.x()) && !(x >= end.x()) &&
+                    !(y < start.y()) && !(y >= end.y()) &&
+                    !(z < start.z()) && !(z >= end.z());
         }
     }
 

@@ -6,7 +6,7 @@ import net.minestom.server.registry.DynamicRegistry;
 import net.minestom.server.world.biome.Biome;
 import org.jetbrains.annotations.NotNull;
 
-public interface UnitModifier extends Block.Setter, Biome.Setter {
+public interface UnitModifier extends Block.Setter, Block.Getter, Biome.Setter {
     /**
      * Sets the block relative to the absolute position of the unit.
      *
