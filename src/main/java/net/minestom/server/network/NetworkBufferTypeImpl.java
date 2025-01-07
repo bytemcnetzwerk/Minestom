@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -627,12 +628,17 @@ interface NetworkBufferTypeImpl<T> extends NetworkBuffer.Type<T> {
     }
 
     record RegistryTypeType<T extends ProtocolObject>(@NotNull Function<Registries, DynamicRegistry<T>> selector) implements NetworkBufferTypeImpl<DynamicRegistry.Key<T>> {
+        private static final Set<String> HAS_OFFSET = Set.of("minecraft:painting_variant", "minecraft:trim_pattern", "minecraft:trim_material", "minecraft:banner_pattern");
+
         @Override
         public void write(@NotNull NetworkBuffer buffer, DynamicRegistry.Key<T> value) {
             Check.stateCondition(buffer.registries == null, "Buffer does not have registries");
             final DynamicRegistry<T> registry = selector.apply(buffer.registries);
-            final int id = registry.getId(value);
+            int id = registry.getId(value);
             Check.argCondition(id == -1, "Key is not registered: {0} > {1}", registry, value);
+            if (HAS_OFFSET.contains(registry.id())) {
+                id++;
+            }
             buffer.write(VAR_INT, id);
         }
 
