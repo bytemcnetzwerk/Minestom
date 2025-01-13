@@ -55,4 +55,9 @@ public class ConsoleSender implements CommandSender {
     public @NotNull Pointers pointers() {
         return this.pointers;
     }
+
+    @Override
+    public boolean hasPermission(String permission) {
+        return true;
+    }
 }

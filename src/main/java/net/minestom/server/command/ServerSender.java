@@ -27,4 +27,9 @@ public class ServerSender implements CommandSender {
     public @NotNull Identity identity() {
         return Identity.nil();
     }
+
+    @Override
+    public boolean hasPermission(String permission) {
+        return true;
+    }
 }

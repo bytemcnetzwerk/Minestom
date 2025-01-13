@@ -81,4 +81,8 @@ public interface CommandSender extends Audience, Taggable, Identified {
     default ConsoleSender asConsole() {
         throw new ClassCastException("CommandSender is not the ConsoleSender");
     }
+
+    default boolean hasPermission(String permission) {
+        return false;
+    }
 }
