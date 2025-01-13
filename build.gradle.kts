@@ -1,12 +1,16 @@
+import java.time.Duration
+
 plugins {
     `java-library`
+    alias(libs.plugins.blossom)
+
     `maven-publish`
     alias(libs.plugins.nexuspublish)
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 // Read env vars (used for publishing generally)
-version = "1.21.0-SNAPSHOT"
+version = "1.21.3-SNAPSHOT"
 val channel = System.getenv("MINESTOM_CHANNEL") ?: "local" // local, snapshot, release
 
 val shortDescription = "1.21 Lightweight Minecraft server"
@@ -21,6 +25,7 @@ allprojects {
     description = shortDescription
 
     repositories {
+        mavenLocal()
         mavenCentral()
     }
 
@@ -115,7 +120,6 @@ dependencies {
     implementation(libs.minestomData)
 
     // Performance/data structures
-    implementation(libs.caffeine)
     api(libs.fastutil)
     implementation(libs.bundles.flare)
     api(libs.gson)
@@ -125,8 +129,6 @@ dependencies {
     testImplementation(libs.bundles.junit)
     testImplementation(project(":testing"))
 }
-
-
 
 tasks {
     jar {
