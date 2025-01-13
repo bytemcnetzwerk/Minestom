@@ -249,9 +249,9 @@ public final class GeneratorImpl {
 
         @Override
         public Block getBlock(int x, int y, int z, @NotNull Condition condition) {
-            final int localX = toSectionRelativeCoordinate(x);
-            final int localY = toSectionRelativeCoordinate(y);
-            final int localZ = toSectionRelativeCoordinate(z);
+            final int localX = globalToSectionRelative(x);
+            final int localY = globalToSectionRelative(y);
+            final int localZ = globalToSectionRelative(z);
 
             return Block.fromBlockId(this.genSection.blocks.get(localX, localY, localZ));
         }
