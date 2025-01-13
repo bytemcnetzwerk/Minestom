@@ -1,7 +1,7 @@
 package net.minestom.server.scoreboard;
 
 import net.minestom.server.entity.Player;
-import net.minestom.server.utils.PacketUtils;
+import net.minestom.server.utils.PacketSendingUtils;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayerTeamManager extends TeamManager {
@@ -16,12 +16,12 @@ public class PlayerTeamManager extends TeamManager {
     @Override
     protected void registerNewTeam(@NotNull Team team) {
         this.getTeams().add(team);
-        PacketUtils.sendPacket(this.player, team.createTeamsCreationPacket());
+        PacketSendingUtils.sendPacket(this.player, team.createTeamsCreationPacket());
     }
 
     @Override
     public boolean deleteTeam(@NotNull Team team) {
-        PacketUtils.sendPacket(this.player, team.createTeamDestructionPacket());
+        PacketSendingUtils.sendPacket(this.player, team.createTeamDestructionPacket());
         return this.getTeams().remove(team);
     }
 

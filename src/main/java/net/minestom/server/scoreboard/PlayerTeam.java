@@ -2,7 +2,7 @@ package net.minestom.server.scoreboard;
 
 import net.minestom.server.entity.Player;
 import net.minestom.server.network.packet.server.play.TeamsPacket;
-import net.minestom.server.utils.PacketUtils;
+import net.minestom.server.utils.PacketSendingUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -24,7 +24,7 @@ public class PlayerTeam extends Team {
         final TeamsPacket addPlayerPacket = new TeamsPacket(this.getTeamName(),
                 new TeamsPacket.AddEntitiesToTeamAction(toAdd));
         // Sends to all online players the add player packet
-        PacketUtils.sendPacket(this.player, addPlayerPacket);
+        PacketSendingUtils.sendPacket(this.player, addPlayerPacket);
 
         // invalidate player members
         this.setPlayerMembersUpToDate(false);
@@ -36,7 +36,7 @@ public class PlayerTeam extends Team {
         final TeamsPacket removePlayerPacket = new TeamsPacket(this.getTeamName(),
                 new TeamsPacket.RemoveEntitiesToTeamAction(toRemove));
         // Sends to all online player the remove player packet
-        PacketUtils.sendPacket(this.player, removePlayerPacket);
+        PacketSendingUtils.sendPacket(this.player, removePlayerPacket);
 
         // Removes the member from the team
         this.getMembersObject().removeAll(toRemove);
@@ -49,6 +49,6 @@ public class PlayerTeam extends Team {
     public void sendUpdatePacket() {
         final var info = new TeamsPacket.UpdateTeamAction(this.getTeamDisplayName(), this.getFriendlyFlags(),
                 this.getNameTagVisibility(), this.getCollisionRule(), this.getTeamColor(), this.getPrefix(), this.getSuffix());
-        PacketUtils.sendPacket(this.player, new TeamsPacket(this.getTeamName(), info));
+        PacketSendingUtils.sendPacket(this.player, new TeamsPacket(this.getTeamName(), info));
     }
 }

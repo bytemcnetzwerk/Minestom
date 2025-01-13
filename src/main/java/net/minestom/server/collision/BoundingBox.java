@@ -3,7 +3,7 @@ package net.minestom.server.collision;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
-import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityPose;
 import net.minestom.server.instance.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Iterator;
 
 /**
- * See https://wiki.vg/Entity_metadata#Mobs_2
+ * See <a href="https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Entity_metadata#Entities">the entity bounding box list</a>.
  */
 public record BoundingBox(Vec relativeStart, Vec relativeEnd) implements Shape {
     private static final BoundingBox SLEEPING = new BoundingBox(0.2, 0.2, 0.2);
@@ -253,7 +253,7 @@ public record BoundingBox(Vec relativeStart, Vec relativeEnd) implements Shape {
         }
     }
 
-    public static @Nullable BoundingBox fromPose(@NotNull Entity.Pose pose) {
+    public static @Nullable BoundingBox fromPose(@NotNull EntityPose pose) {
         return switch (pose) {
             case FALL_FLYING, SWIMMING, SPIN_ATTACK -> SMALL;
             case SLEEPING, DYING -> SLEEPING;

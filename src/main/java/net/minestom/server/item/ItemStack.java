@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
@@ -59,7 +61,7 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
             return ItemStackImpl.create(material, amount, components);
         }
     };
-    @NotNull NetworkBuffer.Type<ItemStack> STRICT_NETWORK_TYPE = NETWORK_TYPE.map(itemStack -> {
+    @NotNull NetworkBuffer.Type<ItemStack> STRICT_NETWORK_TYPE = NETWORK_TYPE.transform(itemStack -> {
         Check.argCondition(itemStack.amount() == 0 || itemStack.isAir(), "ItemStack cannot be empty");
         return itemStack;
     }, itemStack -> {
@@ -151,9 +153,9 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
      * Applies a transformation to the value of a component, only if present.
      *
      * @param component The component type to modify
-     * @param operator The transformation function
+     * @param operator  The transformation function
+     * @param <T>       The component type
      * @return A new ItemStack if the component was transformed, otherwise this.
-     * @param <T> The component type
      */
     default <T> @NotNull ItemStack with(@NotNull DataComponent<T> component, @NotNull UnaryOperator<T> operator) {
         T value = get(component);
@@ -273,6 +275,29 @@ public sealed interface ItemStack extends TagReadable, DataComponent.Holder, Hov
         } catch (IOException e) {
             throw new RuntimeException("failed to encode itemstack nbt", e);
         }
+    }
+
+    // These functions are mirrors of ComponentHolder, but we can't actually implement that interface
+    // because it conflicts with DataComponent.Holder.
+
+    static @NotNull Collection<Component> textComponents(@NotNull ItemStack itemStack) {
+        final var components = new ArrayList<>(itemStack.get(ItemComponent.LORE, List.of()));
+        final var displayName = itemStack.get(ItemComponent.CUSTOM_NAME);
+        if (displayName != null) components.add(displayName);
+        final var itemName = itemStack.get(ItemComponent.ITEM_NAME);
+        if (itemName != null) components.add(itemName);
+        return List.copyOf(components);
+    }
+
+    static @NotNull ItemStack copyWithOperator(@NotNull ItemStack itemStack, @NotNull UnaryOperator<Component> operator) {
+        return itemStack
+                .with(ItemComponent.CUSTOM_NAME, operator)
+                .with(ItemComponent.ITEM_NAME, operator)
+                .with(ItemComponent.LORE, (UnaryOperator<List<Component>>) lines -> {
+                    final var translatedComponents = new ArrayList<Component>();
+                    lines.forEach(component -> translatedComponents.add(operator.apply(component)));
+                    return translatedComponents;
+                });
     }
 
     sealed interface Builder permits ItemStackImpl.Builder {
